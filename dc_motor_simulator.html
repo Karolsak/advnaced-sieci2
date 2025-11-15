@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symulator Silników DC - Dynamiczna Wizualizacja</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            background: #f5f5f5;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: #e0e0e0;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 30px;
+        }
+
+        .control-panel {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 10px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .control-panel h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .parameter {
+            margin-bottom: 20px;
+        }
+
+        .parameter label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #667eea 0%, #764ba2 100%);
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .value-input {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .value-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .solver-select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            background: white;
+            cursor: pointer;
+        }
+
+        .solver-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .calculate-btn:active {
+            transform: translateY(0);
+        }
+
+        .results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .results h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .graph-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .graphs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .graph-item {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        @media (max-width: 1200px) {
+            .tab-content.active {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                position: relative;
+                top: 0;
+            }
+
+            .graphs-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .tab {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .tab-content {
+                padding: 15px;
+            }
+        }
+
+        .highlight {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-style: italic;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Symulator Silników DC</h1>
+            <p>Dynamiczna analiza z solverami ODE (RK45 & Euler)</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(0)">Problem 1: Silnik Bocznikowy</button>
+            <button class="tab" onclick="switchTab(1)">Problem 2: Silnik Szeregowy - Prędkość</button>
+            <button class="tab" onclick="switchTab(2)">Problem 3: Silnik Szeregowy - Moment</button>
+        </div>
+
+        <!-- Tab 1: Shunt Motor -->
+        <div id="tab1" class="tab-content active">
+            <div class="control-panel">
+                <h3>Parametry Silnika</h3>
+
+                <div class="parameter">
+                    <label>Napięcie (V)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="v1" min="100" max="400" value="230" step="1">
+                        <input type="number" class="value-input" id="v1-val" value="230">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Moc wejściowa (kW)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="p1" min="1" max="50" value="11" step="0.1">
+                        <input type="number" class="value-input" id="p1-val" value="11">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Prąd biegu jałowego (A)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="i01" min="1" max="20" value="5" step="0.1">
+                        <input type="number" class="value-input" id="i01-val" value="5">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Prędkość biegu jałowego (rpm)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="n01" min="500" max="2000" value="1150" step="10">
+                        <input type="number" class="value-input" id="n01-val" value="1150">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Rezystancja twornika (Ω)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="ra1" min="0.1" max="2" value="0.5" step="0.01">
+                        <input type="number" class="value-input" id="ra1-val" value="0.5">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Rezystancja wzbudzenia (Ω)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="rf1" min="50" max="500" value="110" step="1">
+                        <input type="number" class="value-input" id="rf1-val" value="110">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Czas symulacji (s)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="sim1" min="1" max="20" value="5" step="0.5">
+                        <input type="number" class="value-input" id="sim1-val" value="5">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Solver ODE</label>
+                    <select class="solver-select" id="solver1">
+                        <option value="rk45">RK45 (Runge-Kutta)</option>
+                        <option value="euler">Euler</option>
+                    </select>
+                </div>
+
+                <button class="calculate-btn" onclick="calculateShuntMotor()">🔄 Oblicz i Symuluj</button>
+
+                <div class="results" id="results1">
+                    <div class="loading">Kliknij "Oblicz i Symuluj" aby rozpocząć</div>
+                </div>
+            </div>
+
+            <div class="graph-container">
+                <div class="graphs-grid">
+                    <div class="graph-item" id="graph1-1"></div>
+                    <div class="graph-item" id="graph1-2"></div>
+                    <div class="graph-item" id="graph1-3"></div>
+                    <div class="graph-item" id="graph1-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Series Motor Speed -->
+        <div id="tab2" class="tab-content">
+            <div class="control-panel">
+                <h3>Parametry Silnika</h3>
+
+                <div class="parameter">
+                    <label>Napięcie (V)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="v2" min="100" max="400" value="250" step="1">
+                        <input type="number" class="value-input" id="v2-val" value="250">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Rezystancja twornika (Ω)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="ra2" min="0.01" max="0.5" value="0.1" step="0.01">
+                        <input type="number" class="value-input" id="ra2-val" value="0.1">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Rezystancja wzbudzenia (Ω)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="rf2" min="0.01" max="0.3" value="0.05" step="0.01">
+                        <input type="number" class="value-input" id="rf2-val" value="0.05">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Spadek napięcia szczotek (V)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="vb2" min="0" max="10" value="3" step="0.5">
+                        <input type="number" class="value-input" id="vb2-val" value="3">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Prąd I1 (A)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="i12" min="20" max="200" value="80" step="1">
+                        <input type="number" class="value-input" id="i12-val" value="80">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Prędkość przy I1 (rpm)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="n12" min="100" max="1500" value="600" step="10">
+                        <input type="number" class="value-input" id="n12-val" value="600">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Prąd I2 (A)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="i22" min="20" max="200" value="100" step="1">
+                        <input type="number" class="value-input" id="i22-val" value="100">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Czas symulacji (s)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="sim2" min="1" max="30" value="10" step="0.5">
+                        <input type="number" class="value-input" id="sim2-val" value="10">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Solver ODE</label>
+                    <select class="solver-select" id="solver2">
+                        <option value="rk45">RK45 (Runge-Kutta)</option>
+                        <option value="euler">Euler</option>
+                    </select>
+                </div>
+
+                <button class="calculate-btn" onclick="calculateSeriesMotorSpeed()">🔄 Oblicz i Symuluj</button>
+
+                <div class="results" id="results2">
+                    <div class="loading">Kliknij "Oblicz i Symuluj" aby rozpocząć</div>
+                </div>
+            </div>
+
+            <div class="graph-container">
+                <div class="graphs-grid">
+                    <div class="graph-item" id="graph2-1"></div>
+                    <div class="graph-item" id="graph2-2"></div>
+                    <div class="graph-item" id="graph2-3"></div>
+                    <div class="graph-item" id="graph2-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Series Motor Torque -->
+        <div id="tab3" class="tab-content">
+            <div class="control-panel">
+                <h3>Parametry Silnika</h3>
+
+                <div class="parameter">
+                    <label>Napięcie (V)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="v3" min="100" max="400" value="220" step="1">
+                        <input type="number" class="value-input" id="v3-val" value="220">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Początkowa prędkość (rpm)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="n13" min="200" max="2000" value="800" step="10">
+                        <input type="number" class="value-input" id="n13-val" value="800">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Początkowy prąd (A)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="i13" min="20" max="200" value="100" step="1">
+                        <input type="number" class="value-input" id="i13-val" value="100">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Stosunek momentów (T2/T1)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="tr3" min="0.1" max="1" value="0.5" step="0.05">
+                        <input type="number" class="value-input" id="tr3-val" value="0.5">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Rezystancja całkowita (Ω)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="rt3" min="0.05" max="1" value="0.2" step="0.01">
+                        <input type="number" class="value-input" id="rt3-val" value="0.2">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Czas symulacji (s)</label>
+                    <div class="slider-container">
+                        <input type="range" class="slider" id="sim3" min="1" max="30" value="10" step="0.5">
+                        <input type="number" class="value-input" id="sim3-val" value="10">
+                    </div>
+                </div>
+
+                <div class="parameter">
+                    <label>Solver ODE</label>
+                    <select class="solver-select" id="solver3">
+                        <option value="rk45">RK45 (Runge-Kutta)</option>
+                        <option value="euler">Euler</option>
+                    </select>
+                </div>
+
+                <button class="calculate-btn" onclick="calculateSeriesMotorTorque()">🔄 Oblicz i Symuluj</button>
+
+                <div class="results" id="results3">
+                    <div class="loading">Kliknij "Oblicz i Symuluj" aby rozpocząć</div>
+                </div>
+            </div>
+
+            <div class="graph-container">
+                <div class="graphs-grid">
+                    <div class="graph-item" id="graph3-1"></div>
+                    <div class="graph-item" id="graph3-2"></div>
+                    <div class="graph-item" id="graph3-3"></div>
+                    <div class="graph-item" id="graph3-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Synchronize sliders with input fields
+        function syncSliderInput(sliderId) {
+            const slider = document.getElementById(sliderId);
+            const input = document.getElementById(sliderId + '-val');
+
+            slider.addEventListener('input', function() {
+                input.value = this.value;
+            });
+
+            input.addEventListener('input', function() {
+                slider.value = this.value;
+            });
+        }
+
+        // Initialize all sliders
+        const sliders = ['v1', 'p1', 'i01', 'n01', 'ra1', 'rf1', 'sim1',
+                        'v2', 'ra2', 'rf2', 'vb2', 'i12', 'n12', 'i22', 'sim2',
+                        'v3', 'n13', 'i13', 'tr3', 'rt3', 'sim3'];
+
+        sliders.forEach(id => syncSliderInput(id));
+
+        // Tab switching
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach((tab, i) => {
+                if (i === index) {
+                    tab.classList.add('active');
+                    contents[i].classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                    contents[i].classList.remove('active');
+                }
+            });
+        }
+
+        // ODE Solvers
+        class ODESolver {
+            static rk45(f, y0, t0, tf, n) {
+                const h = (tf - t0) / (n - 1);
+                const t = [];
+                const y = [[]];
+
+                for (let i = 0; i < y0.length; i++) {
+                    y[i] = new Array(n);
+                    y[i][0] = y0[i];
+                }
+                t[0] = t0;
+
+                for (let i = 0; i < n - 1; i++) {
+                    const yi = y.map(arr => arr[i]);
+                    const ti = t[i];
+
+                    const k1 = f(ti, yi);
+                    const k2 = f(ti + h/2, yi.map((val, idx) => val + h * k1[idx] / 2));
+                    const k3 = f(ti + h/2, yi.map((val, idx) => val + h * k2[idx] / 2));
+                    const k4 = f(ti + h, yi.map((val, idx) => val + h * k3[idx]));
+
+                    for (let j = 0; j < y0.length; j++) {
+                        y[j][i + 1] = y[j][i] + h * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]) / 6;
+                    }
+                    t[i + 1] = t0 + (i + 1) * h;
+                }
+
+                return { t, y };
+            }
+
+            static euler(f, y0, t0, tf, n) {
+                const h = (tf - t0) / (n - 1);
+                const t = [];
+                const y = [[]];
+
+                for (let i = 0; i < y0.length; i++) {
+                    y[i] = new Array(n);
+                    y[i][0] = y0[i];
+                }
+                t[0] = t0;
+
+                for (let i = 0; i < n - 1; i++) {
+                    const yi = y.map(arr => arr[i]);
+                    const dydt = f(t[i], yi);
+
+                    for (let j = 0; j < y0.length; j++) {
+                        y[j][i + 1] = y[j][i] + h * dydt[j];
+                    }
+                    t[i + 1] = t0 + (i + 1) * h;
+                }
+
+                return { t, y };
+            }
+        }
+
+        // Problem 1: Shunt Motor
+        function calculateShuntMotor() {
+            try {
+                // Get parameters
+                const V = parseFloat(document.getElementById('v1-val').value);
+                const P_input = parseFloat(document.getElementById('p1-val').value) * 1000;
+                const I0 = parseFloat(document.getElementById('i01-val').value);
+                const N0 = parseFloat(document.getElementById('n01-val').value);
+                const Ra = parseFloat(document.getElementById('ra1-val').value);
+                const Rf = parseFloat(document.getElementById('rf1-val').value);
+                const simTime = parseFloat(document.getElementById('sim1-val').value);
+                const solver = document.getElementById('solver1').value;
+
+                // Calculations
+                const If = V / Rf;
+                const I = P_input / V;
+                const Ia = I - If;
+                const Ia0 = I0 - If;
+                const Eb0 = V - Ia0 * Ra;
+                const Eb = V - Ia * Ra;
+                const N = N0 * (Eb / Eb0);
+                const omega = 2 * Math.PI * N / 60;
+                const T = (Eb * Ia) / omega;
+
+                // Losses and efficiency
+                const Cu_loss_arm = Ia * Ia * Ra;
+                const Cu_loss_field = If * If * Rf;
+                const P_no_load = V * I0;
+                const Iron_friction_loss = P_no_load - Ia0 * Ia0 * Ra - If * If * Rf;
+                const Total_loss = Cu_loss_arm + Cu_loss_field + Iron_friction_loss;
+                const P_output = P_input - Total_loss;
+                const efficiency = (P_output / P_input) * 100;
+
+                // Display results
+                const resultsDiv = document.getElementById('results1');
+                resultsDiv.innerHTML = `
+                    <h4>ANALIZA SILNIKA BOCZNIKOWEGO</h4>
+                    <hr style="border: 1px solid #667eea; margin: 10px 0;">
+
+                    <strong>Parametry wejściowe:</strong><br>
+                    Napięcie: ${V} V<br>
+                    Moc wejściowa: ${(P_input/1000).toFixed(2)} kW<br>
+                    Prąd wejściowy: ${I.toFixed(2)} A<br>
+                    Prąd wzbudzenia: ${If.toFixed(2)} A<br>
+                    Prąd twornika: ${Ia.toFixed(2)} A<br>
+                    <br>
+
+                    <strong>Obliczone wyniki:</strong><br>
+                    <span class="highlight">(a) Moment: ${T.toFixed(2)} N·m</span><br>
+                    <span class="highlight">(b) Sprawność: ${efficiency.toFixed(2)} %</span><br>
+                    <span class="highlight">(c) Prędkość: ${N.toFixed(2)} rpm</span><br>
+                    <br>
+
+                    <strong>Dodatkowe informacje:</strong><br>
+                    SEM: ${Eb.toFixed(2)} V<br>
+                    Straty twornika: ${Cu_loss_arm.toFixed(2)} W<br>
+                    Straty wzbudzenia: ${Cu_loss_field.toFixed(2)} W<br>
+                    Straty rdzenia i tarcia: ${Iron_friction_loss.toFixed(2)} W<br>
+                    Moc wyjściowa: ${(P_output/1000).toFixed(2)} kW
+                `;
+
+                // Dynamic simulation
+                const J = 0.05;
+                const B = 0.01;
+                const Kt = Eb0 / (2 * Math.PI * N0 / 60);
+
+                const dynamics = (t, y) => {
+                    const omega = y[0];
+                    const Ia = y[1];
+                    const If = V / Rf;
+                    const Eb = Kt * omega * If;
+                    const La = 0.1;
+                    const dIa_dt = (V - Eb - Ia * Ra) / La;
+                    const T = Kt * If * Ia;
+                    const domega_dt = (T - B * omega) / J;
+                    return [domega_dt, dIa_dt];
+                };
+
+                const y0 = [0, 0];
+                const n = 500;
+
+                let sol;
+                if (solver === 'rk45') {
+                    sol = ODESolver.rk45(dynamics, y0, 0, simTime, n);
+                } else {
+                    sol = ODESolver.euler(dynamics, y0, 0, simTime, n);
+                }
+
+                const t = sol.t;
+                const omega_sim = sol.y[0];
+                const Ia_sim = sol.y[1];
+                const speed_sim = omega_sim.map(w => w * 60 / (2 * Math.PI));
+                const torque_sim = Ia_sim.map(ia => Kt * (V / Rf) * ia);
+                const power_sim = torque_sim.map((t, i) => t * omega_sim[i] / 1000);
+
+                // Plot graphs
+                plotShuntMotorGraphs(t, speed_sim, Ia_sim, torque_sim, power_sim, N, Ia, T, P_output/1000);
+
+            } catch (error) {
+                document.getElementById('results1').innerHTML =
+                    `<span class="error">Błąd w obliczeniach: ${error.message}</span>`;
+            }
+        }
+
+        function plotShuntMotorGraphs(t, speed, current, torque, power, N_ss, Ia_ss, T_ss, P_ss) {
+            // Speed vs Time
+            Plotly.newPlot('graph1-1', [{
+                x: t,
+                y: speed,
+                type: 'scatter',
+                name: 'Prędkość',
+                line: { color: '#667eea', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(N_ss),
+                type: 'scatter',
+                name: `Stan ustalony: ${N_ss.toFixed(1)} rpm`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }], {
+                title: 'Prędkość vs Czas',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Prędkość (rpm)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Current vs Time
+            Plotly.newPlot('graph1-2', [{
+                x: t,
+                y: current,
+                type: 'scatter',
+                name: 'Prąd twornika',
+                line: { color: '#27ae60', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(Ia_ss),
+                type: 'scatter',
+                name: `Stan ustalony: ${Ia_ss.toFixed(1)} A`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }], {
+                title: 'Prąd Twornika vs Czas',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Prąd (A)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Torque vs Time
+            Plotly.newPlot('graph1-3', [{
+                x: t,
+                y: torque,
+                type: 'scatter',
+                name: 'Moment',
+                line: { color: '#e91e63', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(T_ss),
+                type: 'scatter',
+                name: `Stan ustalony: ${T_ss.toFixed(1)} N·m`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }], {
+                title: 'Moment vs Czas',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Moment (N·m)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Power vs Time
+            Plotly.newPlot('graph1-4', [{
+                x: t,
+                y: power,
+                type: 'scatter',
+                name: 'Moc wyjściowa',
+                line: { color: '#00bcd4', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(P_ss),
+                type: 'scatter',
+                name: `Stan ustalony: ${P_ss.toFixed(1)} kW`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }], {
+                title: 'Moc Wyjściowa vs Czas',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Moc (kW)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+        }
+
+        // Problem 2: Series Motor Speed
+        function calculateSeriesMotorSpeed() {
+            try {
+                const V = parseFloat(document.getElementById('v2-val').value);
+                const Ra = parseFloat(document.getElementById('ra2-val').value);
+                const Rf = parseFloat(document.getElementById('rf2-val').value);
+                const Vb = parseFloat(document.getElementById('vb2-val').value);
+                const I1 = parseFloat(document.getElementById('i12-val').value);
+                const N1 = parseFloat(document.getElementById('n12-val').value);
+                const I2 = parseFloat(document.getElementById('i22-val').value);
+                const simTime = parseFloat(document.getElementById('sim2-val').value);
+                const solver = document.getElementById('solver2').value;
+
+                // Calculations
+                const Eb1 = V - I1 * (Ra + Rf) - Vb;
+                const Eb2 = V - I2 * (Ra + Rf) - Vb;
+                const N2 = N1 * (Eb2 / Eb1) * (I1 / I2);
+
+                const omega1 = 2 * Math.PI * N1 / 60;
+                const omega2 = 2 * Math.PI * N2 / 60;
+                const T1 = (Eb1 * I1) / omega1;
+                const T2 = (Eb2 * I2) / omega2;
+                const P1 = Eb1 * I1 / 1000;
+                const P2 = Eb2 * I2 / 1000;
+
+                // Display results
+                document.getElementById('results2').innerHTML = `
+                    <h4>ANALIZA SILNIKA SZEREGOWEGO - PRĘDKOŚĆ</h4>
+                    <hr style="border: 1px solid #667eea; margin: 10px 0;">
+
+                    <strong>Parametry wejściowe:</strong><br>
+                    Napięcie: ${V} V<br>
+                    Ra + Rf: ${(Ra + Rf).toFixed(3)} Ω<br>
+                    Spadek szczotek: ${Vb} V<br>
+                    <br>
+
+                    <strong>Warunek 1:</strong><br>
+                    Prąd: ${I1} A<br>
+                    Prędkość: ${N1} rpm<br>
+                    SEM: ${Eb1.toFixed(2)} V<br>
+                    Moment: ${T1.toFixed(2)} N·m<br>
+                    Moc: ${P1.toFixed(2)} kW<br>
+                    <br>
+
+                    <strong>Warunek 2:</strong><br>
+                    Prąd: ${I2} A<br>
+                    <span class="highlight">Obliczona prędkość: ${N2.toFixed(2)} rpm</span><br>
+                    SEM: ${Eb2.toFixed(2)} V<br>
+                    Moment: ${T2.toFixed(2)} N·m<br>
+                    Moc: ${P2.toFixed(2)} kW<br>
+                    <br>
+
+                    Stosunek prędkości: ${(N2/N1).toFixed(3)}<br>
+                    Stosunek momentów: ${(T2/T1).toFixed(3)}
+                `;
+
+                // Dynamic simulation
+                const J = 0.08;
+                const B = 0.02;
+
+                const dynamics = (t, y, I_target) => {
+                    const omega = y[0];
+                    const Ia = y[1];
+                    const phi = 0.01 * Ia;
+                    const Eb = phi * omega;
+                    const L_total = 0.3;
+                    const dIa_dt = (V - Eb - Ia * (Ra + Rf) - Vb) / L_total;
+                    const T = phi * Ia;
+                    const domega_dt = (T - B * omega) / J;
+                    return [domega_dt, dIa_dt];
+                };
+
+                const n = 250;
+                const t_half = simTime / 2;
+
+                // First half at I1
+                let sol1;
+                if (solver === 'rk45') {
+                    sol1 = ODESolver.rk45((t, y) => dynamics(t, y, I1), [omega1, I1], 0, t_half, n);
+                } else {
+                    sol1 = ODESolver.euler((t, y) => dynamics(t, y, I1), [omega1, I1], 0, t_half, n);
+                }
+
+                // Second half at I2
+                let sol2;
+                const y0_2 = [sol1.y[0][n-1], I2];
+                if (solver === 'rk45') {
+                    sol2 = ODESolver.rk45((t, y) => dynamics(t, y, I2), y0_2, t_half, simTime, n);
+                } else {
+                    sol2 = ODESolver.euler((t, y) => dynamics(t, y, I2), y0_2, t_half, simTime, n);
+                }
+
+                // Combine results
+                const t_combined = [...sol1.t, ...sol2.t];
+                const omega_combined = [...sol1.y[0], ...sol2.y[0]];
+                const Ia_combined = [...sol1.y[1], ...sol2.y[1]];
+
+                const speed_combined = omega_combined.map(w => w * 60 / (2 * Math.PI));
+                const phi_combined = Ia_combined.map(ia => 0.01 * ia);
+                const torque_combined = phi_combined.map((phi, i) => phi * Ia_combined[i]);
+                const power_combined = torque_combined.map((t, i) => t * omega_combined[i] / 1000);
+
+                // Plot graphs
+                plotSeriesMotorSpeedGraphs(t_combined, speed_combined, Ia_combined, torque_combined,
+                                          N1, N2, I1, I2, T1, T2, t_half, V, Ra, Rf, Vb, Eb1);
+
+            } catch (error) {
+                document.getElementById('results2').innerHTML =
+                    `<span class="error">Błąd w obliczeniach: ${error.message}</span>`;
+            }
+        }
+
+        function plotSeriesMotorSpeedGraphs(t, speed, current, torque, N1, N2, I1, I2, T1, T2, t_half, V, Ra, Rf, Vb, Eb1) {
+            // Speed vs Time
+            Plotly.newPlot('graph2-1', [{
+                x: t,
+                y: speed,
+                type: 'scatter',
+                name: 'Prędkość',
+                line: { color: '#667eea', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(N1),
+                type: 'scatter',
+                name: `N1: ${N1.toFixed(1)} rpm`,
+                line: { color: '#27ae60', dash: 'dash', width: 2 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(N2),
+                type: 'scatter',
+                name: `N2: ${N2.toFixed(1)} rpm`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }, {
+                x: [t_half, t_half],
+                y: [Math.min(...speed), Math.max(...speed)],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Zmiana obciążenia',
+                line: { color: 'black', dash: 'dot', width: 1 }
+            }], {
+                title: 'Prędkość vs Czas (Zmiana Obciążenia)',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Prędkość (rpm)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Current vs Time
+            Plotly.newPlot('graph2-2', [{
+                x: t,
+                y: current,
+                type: 'scatter',
+                name: 'Prąd',
+                line: { color: '#27ae60', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(I1),
+                type: 'scatter',
+                name: `I1: ${I1.toFixed(1)} A`,
+                line: { color: '#27ae60', dash: 'dash', width: 2 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(I2),
+                type: 'scatter',
+                name: `I2: ${I2.toFixed(1)} A`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }, {
+                x: [t_half, t_half],
+                y: [Math.min(...current), Math.max(...current)],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Zmiana obciążenia',
+                line: { color: 'black', dash: 'dot', width: 1 }
+            }], {
+                title: 'Prąd vs Czas',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Prąd (A)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Torque vs Time
+            Plotly.newPlot('graph2-3', [{
+                x: t,
+                y: torque,
+                type: 'scatter',
+                name: 'Moment',
+                line: { color: '#e91e63', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(T1),
+                type: 'scatter',
+                name: `T1: ${T1.toFixed(1)} N·m`,
+                line: { color: '#27ae60', dash: 'dash', width: 2 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(T2),
+                type: 'scatter',
+                name: `T2: ${T2.toFixed(1)} N·m`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }, {
+                x: [t_half, t_half],
+                y: [Math.min(...torque), Math.max(...torque)],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Zmiana obciążenia',
+                line: { color: 'black', dash: 'dot', width: 1 }
+            }], {
+                title: 'Moment vs Czas',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Moment (N·m)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Speed-Current Characteristic
+            const current_range = [];
+            const speed_range = [];
+            for (let i = 20; i <= 150; i += 1) {
+                current_range.push(i);
+                const Eb = V - i * (Ra + Rf) - Vb;
+                const N = N1 * (Eb / Eb1) * (I1 / i);
+                speed_range.push(N);
+            }
+
+            Plotly.newPlot('graph2-4', [{
+                x: current_range,
+                y: speed_range,
+                type: 'scatter',
+                name: 'Charakterystyka',
+                line: { color: '#00bcd4', width: 3 }
+            }, {
+                x: [I1],
+                y: [N1],
+                type: 'scatter',
+                mode: 'markers',
+                name: `Punkt 1: (${I1}A, ${N1}rpm)`,
+                marker: { color: '#27ae60', size: 12 }
+            }, {
+                x: [I2],
+                y: [N2],
+                type: 'scatter',
+                mode: 'markers',
+                name: `Punkt 2: (${I2}A, ${N2.toFixed(1)}rpm)`,
+                marker: { color: '#e74c3c', size: 12 }
+            }], {
+                title: 'Charakterystyka Prędkość-Prąd',
+                xaxis: { title: 'Prąd (A)' },
+                yaxis: { title: 'Prędkość (rpm)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+        }
+
+        // Problem 3: Series Motor Torque
+        function calculateSeriesMotorTorque() {
+            try {
+                const V = parseFloat(document.getElementById('v3-val').value);
+                const N1 = parseFloat(document.getElementById('n13-val').value);
+                const I1 = parseFloat(document.getElementById('i13-val').value);
+                const torque_ratio = parseFloat(document.getElementById('tr3-val').value);
+                const R_total = parseFloat(document.getElementById('rt3-val').value);
+                const simTime = parseFloat(document.getElementById('sim3-val').value);
+                const solver = document.getElementById('solver3').value;
+
+                // Calculations
+                const I2 = I1 * Math.sqrt(torque_ratio);
+                const Eb1 = V - I1 * R_total;
+                const Eb2 = V - I2 * R_total;
+                const N2 = N1 * (Eb2 / Eb1) * (I1 / I2);
+
+                const omega1 = 2 * Math.PI * N1 / 60;
+                const omega2 = 2 * Math.PI * N2 / 60;
+                const T1 = (Eb1 * I1) / omega1;
+                const T2 = T1 * torque_ratio;
+                const P1 = Eb1 * I1 / 1000;
+                const P2 = Eb2 * I2 / 1000;
+
+                // Display results
+                document.getElementById('results3').innerHTML = `
+                    <h4>ANALIZA SILNIKA SZEREGOWEGO - MOMENT</h4>
+                    <hr style="border: 1px solid #667eea; margin: 10px 0;">
+
+                    <strong>Parametry wejściowe:</strong><br>
+                    Napięcie: ${V} V<br>
+                    Rezystancja całkowita: ${R_total} Ω<br>
+                    Stosunek momentów: ${torque_ratio}<br>
+                    <br>
+
+                    <strong>Warunek początkowy:</strong><br>
+                    Prędkość: ${N1} rpm<br>
+                    Prąd: ${I1} A<br>
+                    SEM: ${Eb1.toFixed(2)} V<br>
+                    Moment: ${T1.toFixed(2)} N·m<br>
+                    Moc: ${P1.toFixed(2)} kW<br>
+                    <br>
+
+                    <strong>Przy zmienionym momencie:</strong><br>
+                    <span class="highlight">Prędkość: ${N2.toFixed(2)} rpm</span><br>
+                    Prąd: ${I2.toFixed(2)} A<br>
+                    SEM: ${Eb2.toFixed(2)} V<br>
+                    Moment: ${T2.toFixed(2)} N·m<br>
+                    Moc: ${P2.toFixed(2)} kW<br>
+                    <br>
+
+                    Wzrost prędkości: ${((N2-N1)/N1*100).toFixed(2)}%<br>
+                    Redukcja prądu: ${((I1-I2)/I1*100).toFixed(2)}%
+                `;
+
+                // Dynamic simulation
+                const J = 0.1;
+                const B = 0.015;
+
+                const dynamics = (t, y, I_target) => {
+                    const omega = y[0];
+                    const Ia = y[1];
+                    const phi = 0.01 * Ia;
+                    const Eb = phi * omega;
+                    const L_total = 0.3;
+                    const dIa_dt = (V - Eb - Ia * R_total) / L_total;
+                    const T = phi * Ia;
+                    const domega_dt = (T - B * omega) / J;
+                    return [domega_dt, dIa_dt];
+                };
+
+                const n = 250;
+                const t_half = simTime / 2;
+
+                // First half at I1
+                let sol1;
+                if (solver === 'rk45') {
+                    sol1 = ODESolver.rk45((t, y) => dynamics(t, y, I1), [omega1, I1], 0, t_half, n);
+                } else {
+                    sol1 = ODESolver.euler((t, y) => dynamics(t, y, I1), [omega1, I1], 0, t_half, n);
+                }
+
+                // Second half at I2
+                let sol2;
+                const y0_2 = [sol1.y[0][n-1], I2];
+                if (solver === 'rk45') {
+                    sol2 = ODESolver.rk45((t, y) => dynamics(t, y, I2), y0_2, t_half, simTime, n);
+                } else {
+                    sol2 = ODESolver.euler((t, y) => dynamics(t, y, I2), y0_2, t_half, simTime, n);
+                }
+
+                // Combine results
+                const t_combined = [...sol1.t, ...sol2.t];
+                const omega_combined = [...sol1.y[0], ...sol2.y[0]];
+                const Ia_combined = [...sol1.y[1], ...sol2.y[1]];
+
+                const speed_combined = omega_combined.map(w => w * 60 / (2 * Math.PI));
+                const phi_combined = Ia_combined.map(ia => 0.01 * ia);
+                const torque_combined = phi_combined.map((phi, i) => phi * Ia_combined[i]);
+                const power_combined = torque_combined.map((t, i) => t * omega_combined[i] / 1000);
+
+                // Plot graphs
+                plotSeriesMotorTorqueGraphs(t_combined, speed_combined, Ia_combined, torque_combined,
+                                           N1, N2, I1, I2, T1, T2, t_half, V, R_total, Eb1);
+
+            } catch (error) {
+                document.getElementById('results3').innerHTML =
+                    `<span class="error">Błąd w obliczeniach: ${error.message}</span>`;
+            }
+        }
+
+        function plotSeriesMotorTorqueGraphs(t, speed, current, torque, N1, N2, I1, I2, T1, T2, t_half, V, R_total, Eb1) {
+            // Speed vs Time
+            Plotly.newPlot('graph3-1', [{
+                x: t,
+                y: speed,
+                type: 'scatter',
+                name: 'Prędkość',
+                line: { color: '#667eea', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(N1),
+                type: 'scatter',
+                name: `N1: ${N1.toFixed(1)} rpm`,
+                line: { color: '#27ae60', dash: 'dash', width: 2 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(N2),
+                type: 'scatter',
+                name: `N2: ${N2.toFixed(1)} rpm`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }, {
+                x: [t_half, t_half],
+                y: [Math.min(...speed), Math.max(...speed)],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Redukcja momentu',
+                line: { color: 'black', dash: 'dot', width: 1 }
+            }], {
+                title: 'Reakcja Prędkości na Redukcję Momentu',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Prędkość (rpm)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Current vs Time
+            Plotly.newPlot('graph3-2', [{
+                x: t,
+                y: current,
+                type: 'scatter',
+                name: 'Prąd',
+                line: { color: '#27ae60', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(I1),
+                type: 'scatter',
+                name: `I1: ${I1.toFixed(1)} A`,
+                line: { color: '#27ae60', dash: 'dash', width: 2 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(I2),
+                type: 'scatter',
+                name: `I2: ${I2.toFixed(1)} A`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }, {
+                x: [t_half, t_half],
+                y: [Math.min(...current), Math.max(...current)],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Redukcja momentu',
+                line: { color: 'black', dash: 'dot', width: 1 }
+            }], {
+                title: 'Prąd vs Czas',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Prąd (A)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Torque vs Time
+            Plotly.newPlot('graph3-3', [{
+                x: t,
+                y: torque,
+                type: 'scatter',
+                name: 'Moment',
+                line: { color: '#e91e63', width: 3 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(T1),
+                type: 'scatter',
+                name: `T1: ${T1.toFixed(1)} N·m`,
+                line: { color: '#27ae60', dash: 'dash', width: 2 }
+            }, {
+                x: t,
+                y: Array(t.length).fill(T2),
+                type: 'scatter',
+                name: `T2: ${T2.toFixed(1)} N·m`,
+                line: { color: '#e74c3c', dash: 'dash', width: 2 }
+            }, {
+                x: [t_half, t_half],
+                y: [Math.min(...torque), Math.max(...torque)],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'Redukcja momentu',
+                line: { color: 'black', dash: 'dot', width: 1 }
+            }], {
+                title: 'Moment vs Czas',
+                xaxis: { title: 'Czas (s)' },
+                yaxis: { title: 'Moment (N·m)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+
+            // Torque-Speed Characteristic
+            const current_range = [];
+            const speed_range = [];
+            const torque_range = [];
+            for (let i = 20; i <= 150; i += 1) {
+                current_range.push(i);
+                const Eb = V - i * R_total;
+                const N = N1 * (Eb / Eb1) * (I1 / i);
+                const T = (i / I1) * (i / I1) * T1;
+                speed_range.push(N);
+                torque_range.push(T);
+            }
+
+            Plotly.newPlot('graph3-4', [{
+                x: speed_range,
+                y: torque_range,
+                type: 'scatter',
+                name: 'Charakterystyka',
+                line: { color: '#00bcd4', width: 3 }
+            }, {
+                x: [N1],
+                y: [T1],
+                type: 'scatter',
+                mode: 'markers',
+                name: `Punkt 1: (${N1}rpm, ${T1.toFixed(1)}N·m)`,
+                marker: { color: '#27ae60', size: 12 }
+            }, {
+                x: [N2],
+                y: [T2],
+                type: 'scatter',
+                mode: 'markers',
+                name: `Punkt 2: (${N2.toFixed(1)}rpm, ${T2.toFixed(1)}N·m)`,
+                marker: { color: '#e74c3c', size: 12 }
+            }], {
+                title: 'Charakterystyka Moment-Prędkość',
+                xaxis: { title: 'Prędkość (rpm)' },
+                yaxis: { title: 'Moment (N·m)' },
+                margin: { t: 40, r: 20, b: 40, l: 60 }
+            }, { responsive: true });
+        }
+
+        // Initialize first calculation on load
+        window.addEventListener('load', function() {
+            calculateShuntMotor();
+        });
+    </script>
+</body>
+</html>

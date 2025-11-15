@@ -1,6 +1,38 @@
 # DC Motor Simulator with Dynamic Visualization
 
-A comprehensive Python tkinter application for analyzing DC motors with real-time ODE solvers and dynamic visualization.
+Kompleksowa aplikacja do analizy silników DC z dynamiczną wizualizacją i solverami ODE w czasie rzeczywistym.
+
+## 🚀 Dwie Wersje Dostępne
+
+### 🌐 Wersja HTML/JavaScript (Zalecana)
+**Plik:** `dc_motor_simulator.html`
+- ✅ Otwórz bezpośrednio w przeglądarce - bez instalacji!
+- ✅ Pełna responsywność i interaktywność
+- ✅ Plotly.js dla profesjonalnych wykresów
+- ✅ Działa na wszystkich platformach (Windows, Mac, Linux, Android, iOS)
+- ✅ Nie wymaga Pythona
+
+**Użycie:**
+```bash
+# Po prostu otwórz w przeglądarce
+firefox dc_motor_simulator.html
+```
+
+Zobacz [README_HTML.md](README_HTML.md) dla szczegółowej dokumentacji.
+
+### 🐍 Wersja Python/Tkinter
+**Plik:** `dc_motor_simulator.py`
+- Wymaga instalacji Pythona i bibliotek
+- Natywne okna aplikacji
+- Matplotlib do wykresów
+
+**Użycie:**
+```bash
+pip install -r requirements.txt
+python3 dc_motor_simulator.py
+```
+
+---
 
 ## Features
 

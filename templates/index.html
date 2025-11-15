@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced DC Series Motor Simulator - Multi-Physics Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Advanced DC Series Motor Simulator</h1>
+            <p class="subtitle">Multi-Physics Analysis with Real-Time Simulation</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'main-control')">Main Control</button>
+            <button class="tab-button" onclick="openTab(event, 'motor-control')">Motor Control</button>
+            <button class="tab-button" onclick="openTab(event, 'analysis')">Performance Analysis</button>
+            <button class="tab-button" onclick="openTab(event, 'thermal')">Thermal Analysis</button>
+            <button class="tab-button" onclick="openTab(event, 'economic')">Economic Analysis</button>
+            <button class="tab-button" onclick="openTab(event, 'example')">Example 29.32</button>
+        </div>
+
+        <!-- Main Control Tab -->
+        <div id="main-control" class="tab-content active">
+            <div class="split-panel">
+                <div class="left-panel">
+                    <div class="panel-card">
+                        <h2>Motor Parameters</h2>
+
+                        <div class="param-group">
+                            <label>Supply Voltage (V): <span id="v-supply-val">460</span></label>
+                            <input type="range" id="v-supply" min="0" max="1000" value="460" step="10"
+                                   oninput="updateParam('V_supply', this.value)">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Armature Resistance (Ω): <span id="r-armature-val">0.5</span></label>
+                            <input type="range" id="r-armature" min="0.1" max="2" value="0.5" step="0.1"
+                                   oninput="updateParam('R_armature', this.value)">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Armature Inductance (H): <span id="l-armature-val">0.05</span></label>
+                            <input type="range" id="l-armature" min="0.01" max="0.2" value="0.05" step="0.01"
+                                   oninput="updateParam('L_armature', this.value)">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Moment of Inertia (kg·m²): <span id="j-inertia-val">0.5</span></label>
+                            <input type="range" id="j-inertia" min="0.1" max="2" value="0.5" step="0.1"
+                                   oninput="updateParam('J_inertia', this.value)">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Friction Coefficient: <span id="b-friction-val">0.01</span></label>
+                            <input type="range" id="b-friction" min="0" max="0.1" value="0.01" step="0.01"
+                                   oninput="updateParam('B_friction', this.value)">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Load Torque (N·m): <span id="t-load-val">100</span></label>
+                            <input type="range" id="t-load" min="0" max="500" value="100" step="10"
+                                   oninput="updateParam('T_load', this.value)">
+                        </div>
+
+                        <div class="control-buttons">
+                            <button class="btn btn-success" onclick="startSimulation()">▶ Start</button>
+                            <button class="btn btn-danger" onclick="stopSimulation()">⏸ Stop</button>
+                            <button class="btn btn-warning" onclick="resetSimulation()">↻ Reset</button>
+                        </div>
+
+                        <div class="param-group">
+                            <label>ODE Solver:</label>
+                            <select id="solver-type" onchange="updateSolver(this.value)">
+                                <option value="RK45">RK45 (Adaptive)</option>
+                                <option value="Euler">Euler (Fixed)</option>
+                            </select>
+                        </div>
+
+                        <div class="status-display">
+                            <h3>Current Status</h3>
+                            <div class="status-item">
+                                <span>Current:</span>
+                                <span id="status-current">0.00 A</span>
+                            </div>
+                            <div class="status-item">
+                                <span>Speed:</span>
+                                <span id="status-speed">0.00 RPM</span>
+                            </div>
+                            <div class="status-item">
+                                <span>Torque:</span>
+                                <span id="status-torque">0.00 N·m</span>
+                            </div>
+                            <div class="status-item">
+                                <span>Temperature:</span>
+                                <span id="status-temp">25.0 °C</span>
+                            </div>
+                            <div class="status-item">
+                                <span>Power In:</span>
+                                <span id="status-power-in">0.00 kW</span>
+                            </div>
+                            <div class="status-item">
+                                <span>Efficiency:</span>
+                                <span id="status-efficiency">0.00 %</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-panel">
+                    <div class="panel-card">
+                        <h2>Real-Time Monitoring</h2>
+                        <div class="charts-grid">
+                            <div class="chart-container">
+                                <canvas id="chart-current"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-speed"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-torque"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-temperature"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-power"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-efficiency"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Motor Control Tab -->
+        <div id="motor-control" class="tab-content">
+            <div class="panel-card">
+                <h2>Advanced Control Strategies</h2>
+
+                <div class="control-grid">
+                    <div class="control-section">
+                        <h3>Control Method</h3>
+                        <select id="control-method" onchange="updateControlMethod(this.value)">
+                            <option value="Open Loop">Open Loop</option>
+                            <option value="PI Speed Control">PI Speed Control</option>
+                            <option value="Field Weakening">Field Weakening</option>
+                            <option value="Chopper Control">Chopper Control</option>
+                            <option value="PWM Control">PWM Control</option>
+                        </select>
+                    </div>
+
+                    <div class="control-section">
+                        <h3>PI Controller Parameters</h3>
+                        <div class="param-group">
+                            <label>Proportional Gain (Kp): <span id="kp-val">1.0</span></label>
+                            <input type="range" id="kp" min="0" max="10" value="1.0" step="0.1"
+                                   oninput="updateControlParam('kp', this.value)">
+                        </div>
+                        <div class="param-group">
+                            <label>Integral Gain (Ki): <span id="ki-val">0.5</span></label>
+                            <input type="range" id="ki" min="0" max="5" value="0.5" step="0.1"
+                                   oninput="updateControlParam('ki', this.value)">
+                        </div>
+                        <div class="param-group">
+                            <label>Speed Setpoint (RPM): <span id="setpoint-val">1500</span></label>
+                            <input type="range" id="setpoint" min="0" max="3000" value="1500" step="50"
+                                   oninput="updateControlParam('setpoint', this.value)">
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <h3>PWM Parameters</h3>
+                        <div class="param-group">
+                            <label>Duty Cycle: <span id="duty-cycle-val">0.80</span></label>
+                            <input type="range" id="duty-cycle" min="0" max="1" value="0.8" step="0.01"
+                                   oninput="updateControlParam('duty_cycle', this.value)">
+                        </div>
+                        <div class="param-group">
+                            <label>PWM Frequency (Hz): <span id="pwm-freq-val">1000</span></label>
+                            <input type="number" id="pwm-freq" value="1000" min="100" max="20000" step="100"
+                                   oninput="updateControlParam('pwm_freq', this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h3>Control Strategy Information</h3>
+                    <div id="control-info">
+                        <p><strong>Open Loop:</strong> Direct voltage control without feedback. Simple but no automatic regulation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Analysis Tab -->
+        <div id="analysis" class="tab-content">
+            <div class="panel-card">
+                <h2>Performance Analysis & Loss Breakdown</h2>
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <canvas id="chart-loss-pie"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-loss-time"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-speed-torque"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-efficiency-curve"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thermal Analysis Tab -->
+        <div id="thermal" class="tab-content">
+            <div class="split-panel">
+                <div class="left-panel">
+                    <div class="panel-card">
+                        <h2>Thermal Parameters</h2>
+
+                        <div class="param-group">
+                            <label>Ambient Temperature (°C): <span id="ambient-temp-val">25</span></label>
+                            <input type="range" id="ambient-temp" min="0" max="50" value="25" step="1"
+                                   oninput="updateParam('ambient_temp', this.value)">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Thermal Resistance (°C/W): <span id="thermal-r-val">2.0</span></label>
+                            <input type="range" id="thermal-r" min="0.1" max="10" value="2.0" step="0.1"
+                                   oninput="updateParam('thermal_resistance', this.value)">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Thermal Capacitance (J/°C): <span id="thermal-c-val">1000</span></label>
+                            <input type="range" id="thermal-c" min="100" max="5000" value="1000" step="100"
+                                   oninput="updateParam('thermal_capacitance', this.value)">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Maximum Temperature (°C): <span id="max-temp-val">155</span></label>
+                            <input type="range" id="max-temp" min="100" max="200" value="155" step="5"
+                                   oninput="updateParam('max_temp', this.value)">
+                        </div>
+
+                        <div class="thermal-status">
+                            <h3>Thermal Status</h3>
+                            <div id="derating-status" class="status-ok">
+                                Operating within limits
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-panel">
+                    <div class="panel-card">
+                        <h2>Thermal Visualization</h2>
+                        <div class="charts-grid-vertical">
+                            <div class="chart-container">
+                                <canvas id="chart-temp-rise"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-derating"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Economic Analysis Tab -->
+        <div id="economic" class="tab-content">
+            <div class="split-panel">
+                <div class="left-panel">
+                    <div class="panel-card">
+                        <h2>Economic Parameters</h2>
+
+                        <div class="param-group">
+                            <label>Energy Cost ($/kWh):</label>
+                            <input type="number" id="power-cost" value="0.12" step="0.01" min="0">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Operating Hours (hrs/year):</label>
+                            <input type="number" id="operating-hours" value="8760" step="100" min="0">
+                        </div>
+
+                        <div class="param-group">
+                            <label>Maintenance Cost ($/year):</label>
+                            <input type="number" id="maintenance-cost" value="500" step="50" min="0">
+                        </div>
+
+                        <button class="btn btn-primary" onclick="calculateEconomics()">Calculate Economics</button>
+
+                        <div class="economic-results">
+                            <h3>Economic Analysis Results</h3>
+                            <div id="economic-output"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-panel">
+                    <div class="panel-card">
+                        <h2>Cost Visualization</h2>
+                        <div class="charts-grid-vertical">
+                            <div class="chart-container">
+                                <canvas id="chart-cost-breakdown"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-cost-projection"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Example 29.32 Tab -->
+        <div id="example" class="tab-content">
+            <div class="split-panel">
+                <div class="left-panel">
+                    <div class="panel-card">
+                        <h2>Example 29.32 - DC Series Motor Analysis</h2>
+
+                        <div class="problem-statement">
+                            <h3>Given Data:</h3>
+                            <ul>
+                                <li>Static torque test results:</li>
+                                <li>Current (A): 20, 30, 40, 50</li>
+                                <li>Torque (N·m): 128.8, 230.5, 349.8, 446.2</li>
+                                <li>Supply Voltage: 460 V</li>
+                                <li>Armature + Field Resistance: 0.5 Ω</li>
+                                <li>Ignore iron and friction losses</li>
+                            </ul>
+
+                            <h3>Task:</h3>
+                            <p>Deduce the speed/torque curve for the machine when supplied at a constant voltage of 460 V.</p>
+                        </div>
+
+                        <button class="btn btn-primary btn-large" onclick="solveExample()">Solve Example 29.32</button>
+
+                        <div class="example-results">
+                            <h3>Solution Results</h3>
+                            <div id="example-output"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-panel">
+                    <div class="panel-card">
+                        <h2>Characteristic Curves</h2>
+                        <div class="charts-grid-vertical">
+                            <div class="chart-container">
+                                <canvas id="chart-torque-current"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-speed-current"></canvas>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="chart-speed-torque-final"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Advanced DC Series Motor Simulator | Multi-Physics Analysis Tool</p>
+            <p>Developed for Electrical Engineering Education and Professional Analysis</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
